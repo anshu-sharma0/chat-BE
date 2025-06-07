@@ -36,6 +36,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+const onlineUsers = new Map();
 
 // 404 Handler
 app.use((req, res) => {
@@ -50,6 +51,22 @@ io.on('connection', (socket) => {
   socket.on('join_conversation', (conversationId) => {
     socket.join(conversationId);
     console.log(`➡️  ${socket.id} joined conversation ${conversationId}`);
+  });
+
+  socket.on("userOnline", (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log("online")
+    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+  });
+
+  socket.on("disconnect", () => {
+    for (let [userId, sId] of onlineUsers.entries()) {
+      if (sId === socket.id) {
+        onlineUsers.delete(userId);
+        break;
+      }
+    }
+    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
   });
 
   // Typing event
