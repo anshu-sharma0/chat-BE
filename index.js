@@ -52,6 +52,18 @@ io.on('connection', (socket) => {
     console.log(`➡️  ${socket.id} joined conversation ${conversationId}`);
   });
 
+  // Typing event
+  socket.on("typing", ({ conversationId, user }) => {
+    console.log("typing")
+    socket.to(conversationId).emit("typing", user);
+  });
+  
+  // Stop typing event
+  socket.on("stop_typing", ({ conversationId, user }) => {
+    console.log("stop_typing")
+    socket.to(conversationId).emit("stop_typing", user);
+  });
+
   // Handle sending message to others in the room
   socket.on('send_message', ({ conversationId, message }) => {
     socket.to(conversationId).emit('receive_message', message);
