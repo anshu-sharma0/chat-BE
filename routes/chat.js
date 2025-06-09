@@ -4,19 +4,6 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User'); // adjust the path as needed
 
-// Create or get conversation
-
-router.get('/users', async (req, res) => {
-    try {
-        const users = await User.find();
-        res.status(200).json(users);
-    } catch (error) {
-        console.error('Error fetching users:', error);
-        res.status(500).json({ message: 'Server error while retrieving users' });
-    }
-});
-
-
 router.post('/conversation', async (req, res) => {
   const { user1, user2 } = req.body;
 

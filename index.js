@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const chatRoutes = require('./routes/chat');
 const authRoutes = require('./routes/auth');
-
+const User = require('./models/User');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -53,20 +53,54 @@ io.on('connection', (socket) => {
     console.log(`➡️  ${socket.id} joined conversation ${conversationId}`);
   });
 
-  socket.on("userOnline", (userId) => {
-    onlineUsers.set(userId, socket.id);
-    console.log("online")
-    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+  socket.on("get_users", async () => {
+    try {
+      const users = await User.find();
+      console.log("get_users")
+      socket.emit("users_list", users);
+      console.log("users_list", users)
+    } catch (error) {
+      socket.emit("error", { message: "Failed to fetch users." });
+    }
   });
 
-  socket.on("disconnect", () => {
+  socket.on("get_user", async (userId) => {
+    try {
+      const user = await User.findById(userId);
+      socket.emit("user_info", user);
+    } catch (error) {
+      socket.emit("error", { message: "User not found" });
+    }
+  });
+
+
+  socket.on("userOnline", async (userId) => {
+    onlineUsers.set(userId, socket.id);
+
+    await User.findByIdAndUpdate(userId, {
+      isOnline: true,
+      lastSeen: new Date(),
+    });
+
+    const users = await User.find();
+    io.emit("users_list", users);
+  });
+
+  socket.on("disconnect", async () => {
     for (let [userId, sId] of onlineUsers.entries()) {
       if (sId === socket.id) {
         onlineUsers.delete(userId);
+
+        await User.findByIdAndUpdate(userId, {
+          isOnline: false,
+          lastSeen: new Date(),
+        });
+
         break;
       }
     }
-    io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+
+    console.log('❌ User disconnected:', socket.id);
   });
 
   // Typing event
@@ -74,7 +108,7 @@ io.on('connection', (socket) => {
     console.log("typing")
     socket.to(conversationId).emit("typing", user);
   });
-  
+
   // Stop typing event
   socket.on("stop_typing", ({ conversationId, user }) => {
     console.log("stop_typing")
