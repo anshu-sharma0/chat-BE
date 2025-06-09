@@ -74,18 +74,6 @@ io.on('connection', (socket) => {
   });
 
 
-  socket.on("userOnline", async (userId) => {
-    onlineUsers.set(userId, socket.id);
-
-    await User.findByIdAndUpdate(userId, {
-      isOnline: true,
-      lastSeen: new Date(),
-    });
-
-    const users = await User.find();
-    io.emit("users_list", users);
-  });
-
   socket.on("disconnect", async () => {
     for (let [userId, sId] of onlineUsers.entries()) {
       if (sId === socket.id) {
