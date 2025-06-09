@@ -56,6 +56,7 @@ io.on('connection', (socket) => {
   socket.on("get_users", async () => {
     try {
       const users = await User.find();
+      socket.emit("users_list", users);
       console.log("get_users")
     } catch (error) {
       socket.emit("error", { message: "Failed to fetch users." });
